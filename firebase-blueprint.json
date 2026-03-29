@@ -1,0 +1,48 @@
+{
+  "entities": {
+    "Review": {
+      "title": "Review",
+      "description": "A student review of the flipped classroom experience",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique review ID" },
+        "student_name": { "type": "string", "description": "Name of the student" },
+        "email": { "type": "string", "description": "Email of the student" },
+        "rating": { "type": "integer", "description": "Rating from 1 to 5" },
+        "content": { "type": "string", "description": "The review text" },
+        "sentiment": { "type": "string", "description": "Positive, Neutral, or Negative" },
+        "confidence": { "type": "number", "description": "AI confidence score" },
+        "keywords": { "type": "array", "items": { "type": "string" }, "description": "Extracted keywords" },
+        "created_at": { "type": "string", "format": "date-time", "description": "Timestamp of submission" },
+        "uid": { "type": "string", "description": "Firebase Auth UID of the reviewer" }
+      },
+      "required": ["id", "student_name", "email", "rating", "content", "sentiment", "uid"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "description": "User email" },
+        "display_name": { "type": "string", "description": "User display name" },
+        "phone_number": { "type": "string", "description": "User mobile number" },
+        "photo_url": { "type": "string", "description": "User photo URL" },
+        "bio": { "type": "string", "description": "User biography" },
+        "location": { "type": "string", "description": "User location" },
+        "joined": { "type": "string", "format": "date-time", "description": "Join date" }
+      },
+      "required": ["uid", "email"]
+    }
+  },
+  "firestore": {
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Global collection of student reviews"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile data"
+    }
+  }
+}
