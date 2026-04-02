@@ -20,7 +20,11 @@ if (!apiKey) {
   if (apiKey) console.log("GEMINI_API_KEY detected via import.meta.env.");
 }
 
-if (!apiKey) {
+// Debugging: Log a masked version of the key to help the user verify it
+if (apiKey) {
+  const maskedKey = `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`;
+  console.log(`Using Gemini API Key: ${maskedKey}`);
+} else {
   console.warn("GEMINI_API_KEY is not set. Sentiment analysis will use fallback values (Neutral). Please check your .env file.");
 }
 
