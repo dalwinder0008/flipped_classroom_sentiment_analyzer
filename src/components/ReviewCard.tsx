@@ -19,6 +19,7 @@ const ReviewCard: React.FC<{ review: Review; onUpdate?: () => void }> = ({ revie
   const [error, setError] = useState<string | null>(null);
 
   const handleDelete = async () => {
+    if (!isOwner) return;
     setIsDeleting(true);
     setError(null);
     try {
@@ -76,19 +77,19 @@ const ReviewCard: React.FC<{ review: Review; onUpdate?: () => void }> = ({ revie
 
   return (
     <div className="glass-card flex flex-col h-full group">
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-brand-600/20 flex items-center justify-center font-bold text-brand-400">
+      <div className="flex justify-between items-start mb-4 gap-2">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-full bg-brand-600/20 shrink-0 flex items-center justify-center font-bold text-brand-400">
             {review.student_name?.[0] || "?"}
           </div>
-          <div>
-            <h4 className="font-bold">{review.student_name}</h4>
-            <p className="text-xs text-slate-500">{review.email}</p>
+          <div className="min-w-0">
+            <h4 className="font-bold truncate" title={review.student_name}>{review.student_name}</h4>
+            <p className="text-xs text-slate-500 truncate" title={review.email}>{review.email}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {isOwner && !isEditing && !showDeleteConfirm && (
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-1 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
               <button 
                 onClick={() => setIsEditing(true)}
                 className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 hover:text-brand-400 transition-colors"
