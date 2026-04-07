@@ -1,0 +1,94 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: reviews
+    // Document ID: reviewId (RVYYMMDD-XXXX)
+    // Fields:
+    //   - id: string (required) - Unique review ID
+    //   - student_name: string (required) - Name of the student
+    //   - email: string (required) - Email of the student
+    //   - rating: number (required, 1-5) - Rating
+    //   - content: string (required, < 500 chars) - Review text
+    //   - sentiment: string (required) - Positive, Neutral, Negative
+    //   - confidence: number (optional) - AI confidence
+    //   - keywords: list (optional) - Extracted keywords
+    //   - created_at: string (required) - ISO date string
+    //   - uid: string (required) - Auth UID
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "dalwinderkarnawal1322@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidReview(data) {
+      return data.keys().hasAll(['id', 'student_name', 'email', 'rating', 'content', 'sentiment', 'uid', 'created_at']) &&
+             data.student_name is string && data.student_name.size() > 0 && data.student_name.size() < 100 &&
+             data.email is string && data.email == request.auth.token.email &&
+             (data.rating is int || data.rating is number) && data.rating >= 1 && data.rating <= 5 &&
+             data.content is string && data.content.size() >= 10 && data.content.size() <= 500 &&
+             data.sentiment in ['Positive', 'Neutral', 'Negative'] &&
+             data.uid == request.auth.uid &&
+             data.created_at is string &&
+             (!('confidence' in data) || data.confidence is number) &&
+             (!('keywords' in data) || data.keywords is list);
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.uid == request.auth.uid &&
+             data.email == request.auth.token.email &&
+             (!('role' in data) || data.role == 'student' || isAdmin());
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /reviews/{reviewId} {
+      // Anyone authenticated can read reviews for the dashboard
+      // Note: We should be careful about PII. In a real app, we might split public/private data.
+      // For this demo, we'll allow reading but warn about the email field.
+      allow read: if isAuthenticated();
+      
+      // Users can create a review if they are authenticated and it's their own UID
+      allow create: if isAuthenticated() && isValidReview(request.resource.data);
+      
+      // Users can update their own review
+      allow update: if isDocOwner() && isValidReview(request.resource.data) && 
+                      request.resource.data.created_at == resource.data.created_at;
+      
+      // Only owners or admins can delete
+      allow delete: if isDocOwner() || isAdmin();
+    }
+
+    match /users/{userId} {
+      // Users can read their own profile or admins can read any profile
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Users can create/update their own profile
+      allow create, update: if isOwner(userId) && isValidUser(request.resource.data);
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "name": "flipped_classroom_sentiment_analyzer",
+  "description": "A secure, AI-powered platform for analyzing student feedback in flipped classrooms with Google Authentication, interactive charts, and real-time sentiment tracking.",
+  "requestFramePermissions": []
+}
