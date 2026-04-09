@@ -4,6 +4,7 @@ import { LayoutDashboard, PlusCircle, ListFilter, User, Home, BookOpen, Graduati
 import { cn } from "@/src/lib/utils";
 import { useAuth } from "./AuthProvider";
 import { auth, signOut } from "@/src/lib/firebase";
+import { MeshGradient } from "@paper-design/shaders-react";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -106,46 +107,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <main className="flex-1 relative overflow-x-hidden">
-        {/* Background Image & Patterns */}
-        <div className="fixed inset-0 pointer-events-none overflow-hidden">
-          {/* Background Image Layer */}
-          <div className="absolute inset-0 z-0 overflow-hidden">
-            <video 
-              autoPlay 
-              loop 
-              muted 
-              playsInline
-              className="w-full h-full object-cover opacity-10 mix-blend-overlay"
-            >
-              <source src="https://assets.mixkit.co/videos/preview/mixkit-flipping-through-the-pages-of-a-book-4377-large.mp4" type="video/mp4" />
-            </video>
-            <div className="absolute inset-0 bg-slate-950/80" />
-          </div>
-
-          {/* College-themed background pattern */}
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-10" 
-               style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-          
-          <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-brand-600/10 rounded-full blur-[120px] animate-blob" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-indigo-600/10 rounded-full blur-[120px] animate-blob [animation-delay:2s]" />
-          
-          {/* Floating Education Icons */}
-          <div className="absolute top-[15%] left-[15%] text-white/5 animate-pulse">
-            <BookOpen className="w-24 h-24 rotate-12" />
-          </div>
-          <div className="absolute bottom-[20%] left-[20%] text-white/5 animate-bounce [animation-duration:10s]">
-            <GraduationCap className="w-32 h-32 -rotate-12" />
-          </div>
-          <div className="absolute top-[40%] right-[15%] text-white/5 animate-pulse [animation-delay:3s]">
-            <School className="w-28 h-28 rotate-6" />
-          </div>
-          <div className="absolute bottom-[10%] right-[25%] text-white/5 animate-bounce [animation-duration:8s]">
-            <Pencil className="w-20 h-20 -rotate-45" />
-          </div>
-          
-          {/* Decorative shapes */}
-          <div className="absolute top-1/4 right-10 w-32 h-32 border border-white/5 rounded-full rotate-12" />
-          <div className="absolute bottom-1/4 left-10 w-48 h-48 border border-white/5 rounded-3xl -rotate-12" />
+        {/* New Shader Background */}
+        <div className="fixed inset-0 pointer-events-none z-0">
+          <MeshGradient
+            className="w-full h-full"
+            colors={["#000000", "#1a1a1a", "#0f172a", "#1e293b"]}
+            speed={0.5}
+          />
+          {/* Subtle overlay to ensure readability */}
+          <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]" />
         </div>
         
         <div className="relative z-10">
