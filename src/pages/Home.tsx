@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { ArrowRight, Star, Shield, Zap, BarChart3, MessageSquare } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/src/components/AuthProvider";
+import { GlowCard } from "@/src/components/ui/spotlight-card";
 
 export default function Home() {
   const { user } = useAuth();
@@ -56,7 +57,7 @@ export default function Home() {
             </div>
             {/* Floating Stats */}
             <div className="absolute -top-10 -right-10 hidden lg:block">
-              <div className="glass-card p-4 animate-bounce [animation-duration:3s]">
+              <GlowCard customSize className="p-4 animate-bounce [animation-duration:3s] h-auto" glowColor="green">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
                     <Zap className="w-5 h-5 text-emerald-400" />
@@ -66,7 +67,7 @@ export default function Home() {
                     <p className="font-bold">99.2% Accuracy</p>
                   </div>
                 </div>
-              </div>
+              </GlowCard>
             </div>
           </motion.div>
         </div>
@@ -77,9 +78,9 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { icon: MessageSquare, title: "AI Sentiment Analysis", desc: "Instantly classify feedback as positive, negative, or neutral using advanced AI models." },
-              { icon: BarChart3, title: "Interactive Visuals", desc: "Track sentiment trends and emotion distributions with beautiful, real-time charts." },
-              { icon: Shield, title: "Unique ID Tracking", desc: "Every review gets a unique, auto-generated ID for easy reference and tracking." }
+              { icon: MessageSquare, title: "AI Sentiment Analysis", desc: "Instantly classify feedback as positive, negative, or neutral using advanced AI models.", color: "blue" as const },
+              { icon: BarChart3, title: "Interactive Visuals", desc: "Track sentiment trends and emotion distributions with beautiful, real-time charts.", color: "purple" as const },
+              { icon: Shield, title: "Unique ID Tracking", desc: "Every review gets a unique, auto-generated ID for easy reference and tracking.", color: "orange" as const }
             ].map((f, i) => (
               <motion.div
                 key={i}
@@ -87,13 +88,14 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="glass-card"
               >
-                <div className="w-12 h-12 rounded-xl bg-brand-600/20 flex items-center justify-center mb-6">
-                  <f.icon className="w-6 h-6 text-brand-400" />
-                </div>
-                <h3 className="text-xl font-bold mb-3">{f.title}</h3>
-                <p className="text-slate-400 leading-relaxed">{f.desc}</p>
+                <GlowCard customSize className="h-full" glowColor={f.color}>
+                  <div className="w-12 h-12 rounded-xl bg-brand-600/20 flex items-center justify-center mb-6">
+                    <f.icon className="w-6 h-6 text-brand-400" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-3">{f.title}</h3>
+                  <p className="text-slate-400 leading-relaxed">{f.desc}</p>
+                </GlowCard>
               </motion.div>
             ))}
           </div>
@@ -103,7 +105,7 @@ export default function Home() {
       {/* Auth Mock Section */}
       {!user && (
         <section className="py-24 px-6">
-          <div className="max-w-3xl mx-auto glass-card text-center p-12">
+          <GlowCard customSize className="max-w-3xl mx-auto text-center p-12 h-auto" glowColor="blue">
             <h2 className="text-3xl font-bold mb-6">Join the Community</h2>
             <p className="text-slate-400 mb-10">Sign in to track your reviews and see how your feedback shapes the classroom.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -112,7 +114,7 @@ export default function Home() {
                 Continue with Google
               </button>
             </div>
-          </div>
+          </GlowCard>
         </section>
       )}
     </div>

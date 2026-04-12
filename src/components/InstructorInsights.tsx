@@ -3,6 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 import { Review } from "@/src/types";
 import { Sparkles, Brain, AlertCircle, CheckCircle2, Lightbulb, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { GlowCard } from "./ui/spotlight-card";
 
 interface InstructorInsightsProps {
   reviews: Review[];
@@ -82,7 +83,7 @@ export default function InstructorInsights({ reviews }: InstructorInsightsProps)
   if (reviews.length === 0) return null;
 
   return (
-    <div className="glass-card overflow-hidden relative group">
+    <GlowCard customSize className="overflow-hidden relative group h-auto" glowColor="purple">
       <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
         <Brain className="w-24 h-24 text-brand-400" />
       </div>
@@ -203,6 +204,6 @@ export default function InstructorInsights({ reviews }: InstructorInsightsProps)
           </motion.div>
         ) : null}
       </AnimatePresence>
-    </div>
+    </GlowCard>
   );
 }

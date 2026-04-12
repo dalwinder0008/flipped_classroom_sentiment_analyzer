@@ -5,12 +5,14 @@ import { cn } from "@/src/lib/utils";
 import { useAuth } from "./AuthProvider";
 import { auth, signOut } from "@/src/lib/firebase";
 import { MeshGradient } from "@paper-design/shaders-react";
+import { useWebGLSupport } from "@/src/lib/webgl";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const hasWebGL = useWebGLSupport();
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -107,13 +109,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <main className="flex-1 relative overflow-x-hidden">
-        {/* New Shader Background */}
+        {/* New Shader Background with Fallback */}
         <div className="fixed inset-0 pointer-events-none z-0">
-          <MeshGradient
-            className="w-full h-full"
-            colors={["#000000", "#1a1a1a", "#0f172a", "#1e293b"]}
-            speed={0.5}
-          />
+          {hasWebGL === true ? (
+            <MeshGradient
+              className="w-full h-full"
+              colors={["#000000", "#1a1a1a", "#0f172a", "#1e293b"]}
+              speed={0.5}
+            />
+          ) : hasWebGL === false ? (
+            <div className="w-full h-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
+          ) : null}
           {/* Subtle overlay to ensure readability */}
           <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]" />
         </div>

@@ -6,6 +6,7 @@ import { useAuth } from "./AuthProvider";
 import { api } from "@/src/lib/api";
 import { analyzeSentiment } from "@/src/lib/gemini";
 import { motion } from "motion/react";
+import { GlowCard } from "./ui/spotlight-card";
 
 const ReviewCard: React.FC<{ review: Review; onUpdate?: () => void }> = ({ review, onUpdate }) => {
   const { user } = useAuth();
@@ -85,9 +86,10 @@ const ReviewCard: React.FC<{ review: Review; onUpdate?: () => void }> = ({ revie
   };
 
   return (
-    <motion.div 
-      whileHover={{ y: -2 }}
-      className="glass-card flex flex-col h-full group overflow-hidden"
+    <GlowCard 
+      customSize 
+      className="flex flex-col h-full group overflow-hidden"
+      glowColor={review.sentiment === "Positive" ? "green" : review.sentiment === "Negative" ? "red" : "orange"}
     >
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
         <div className="flex items-center gap-3 min-w-0 w-full sm:w-auto">
@@ -256,7 +258,7 @@ const ReviewCard: React.FC<{ review: Review; onUpdate?: () => void }> = ({ revie
           {new Date(review.created_at).toLocaleDateString()}
         </div>
       </div>
-    </motion.div>
+    </GlowCard>
   );
 };
 

@@ -1,271 +1,266 @@
-import React, { useState, useEffect, useRef } from "react";
-import { 
-  auth, 
-  googleProvider, 
-  signInWithPopup, 
-  getMultiFactorResolver, 
-  PhoneAuthProvider, 
-  PhoneMultiFactorGenerator,
-  MultiFactorResolver,
-  RecaptchaVerifier
-} from "@/src/lib/firebase";
-import { motion } from "motion/react";
-import { GraduationCap, BookOpen, School, Pencil, ShieldCheck, ArrowLeft, Send } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { User as UserIcon, Mail, Phone, MapPin, Calendar, Star, MessageSquare, Award, Edit3, Save, X, Loader2 } from "lucide-react";
+import { Review } from "@/src/types";
+import ReviewCard from "@/src/components/ReviewCard";
+import { cn } from "@/src/lib/utils";
+import { useAuth } from "@/src/components/AuthProvider";
+import { api } from "@/src/lib/api";
+import { GlowCard } from "@/src/components/ui/spotlight-card";
 
-export default function Login() {
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [mfaResolver, setMfaResolver] = useState<MultiFactorResolver | null>(null);
-  const [mfaVerificationId, setMfaVerificationId] = useState<string | null>(null);
-  const [mfaCode, setMfaCode] = useState("");
-  const [mfaSent, setMfaSent] = useState(false);
-  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
-  const navigate = useNavigate();
+export default function Profile() {
+  const { user, profile, refreshProfile } = useAuth();
+  const [userReviews, setUserReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editData, setEditData] = useState({
+    display_name: "",
+    phone_number: "",
+    bio: "",
+    location: ""
+  });
 
   useEffect(() => {
-    return () => {
-      if (recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current.clear();
+    if (profile) {
+      setEditData({
+        display_name: profile.display_name || user?.displayName || "",
+        phone_number: profile.phone_number || "",
+        bio: profile.bio || "",
+        location: profile.location || ""
+      });
+    }
+  }, [profile, user]);
+
+  useEffect(() => {
+    const fetchUserReviews = async () => {
+      if (!user?.email) return;
+      try {
+        const reviews = await api.getUserReviews(user.email);
+        setUserReviews(reviews);
+      } catch (error) {
+        console.error("API Error:", error);
+      } finally {
+        setLoading(false);
       }
     };
-  }, []);
+    fetchUserReviews();
+  }, [user]);
 
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    setError(null);
+  const handleSave = async () => {
+    if (!user) return;
+    setIsSaving(true);
     try {
-      await signInWithPopup(auth, googleProvider);
-      navigate("/");
-    } catch (err: any) {
-      if (err.code === "auth/popup-closed-by-user" || err.code === "auth/cancelled-popup-request") {
-        setLoading(false);
-        return;
-      }
-
-      if (err.code === "auth/multi-factor-auth-required") {
-        const resolver = getMultiFactorResolver(auth, err);
-        setMfaResolver(resolver);
-        setLoading(false);
-        return;
-      }
-
-      console.error("Login error:", err);
-      if (err.code === "auth/popup-blocked") {
-        setError("The login popup was blocked by your browser. Please allow popups.");
-      } else {
-        setError(err.message || "Failed to sign in. Please try again.");
-      }
+      await api.updateProfile({
+        uid: user.uid,
+        email: user.email,
+        display_name: editData.display_name,
+        phone_number: editData.phone_number,
+        photo_url: user.photoURL,
+        bio: editData.bio,
+        location: editData.location
+      });
+      await refreshProfile();
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Save Error:", error);
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
-  const sendMfaCode = async (hintIndex: number = 0) => {
-    if (!mfaResolver) return;
-    setLoading(true);
-    setError(null);
+  if (!user) return null;
 
-    try {
-      if (!recaptchaVerifierRef.current) {
-        recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          size: 'invisible'
-        });
-      }
-
-      const phoneAuthProvider = new PhoneAuthProvider(auth);
-      const hint = mfaResolver.hints[hintIndex];
-      
-      if (hint.factorId === PhoneMultiFactorGenerator.FACTOR_ID) {
-        const verificationId = await phoneAuthProvider.verifyPhoneNumber(
-          { multiFactorHint: hint, session: mfaResolver.session },
-          recaptchaVerifierRef.current
-        );
-        setMfaVerificationId(verificationId);
-        setMfaSent(true);
-      } else {
-        setError("Unsupported MFA method: " + hint.factorId);
-      }
-    } catch (err: any) {
-      console.error("MFA send error:", err);
-      if (err.code === "auth/operation-not-allowed") {
-        setError("SMS authentication is not enabled for this project or region. Please enable 'Phone' authentication and the relevant SMS regions in the Firebase Console (Authentication > Sign-in method).");
-      } else if (err.code === "auth/sms-quota-exceeded") {
-        setError("SMS quota exceeded. Please try again later.");
-      } else {
-        setError("Failed to send verification code: " + (err.message || "Unknown error"));
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleMfaVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!mfaResolver || !mfaVerificationId || !mfaCode) return;
-
-    setLoading(true);
-    setError(null);
-    try {
-      const cred = PhoneAuthProvider.credential(mfaVerificationId, mfaCode);
-      const multiFactorAssertion = PhoneMultiFactorGenerator.assertion(cred);
-      await mfaResolver.resolveSignIn(multiFactorAssertion);
-      navigate("/");
-    } catch (err: any) {
-      console.error("MFA verification error:", err);
-      setError("Invalid verification code. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const resetMfa = () => {
-    setMfaResolver(null);
-    setMfaVerificationId(null);
-    setMfaCode("");
-    setMfaSent(false);
-    setError(null);
-  };
+  const avgRating = userReviews.length > 0 
+    ? (userReviews.reduce((acc, r) => acc + r.rating, 0) / userReviews.length).toFixed(1) 
+    : "0.0";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 relative overflow-hidden">
-      {/* Background Blobs & Patterns */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-             style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+    <div className="p-8 max-w-6xl mx-auto space-y-8">
+      {/* Profile Header */}
+      <GlowCard customSize className="p-8 relative overflow-hidden h-auto" glowColor="blue">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-brand-600/10 rounded-full blur-[80px] -mr-32 -mt-32" />
         
-        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-brand-600/10 rounded-full blur-[120px] animate-blob" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-indigo-600/10 rounded-full blur-[120px] animate-blob [animation-delay:2s]" />
-        
-        {/* Floating Education Icons */}
-        <div className="absolute top-[15%] left-[15%] text-white/5 animate-pulse">
-          <BookOpen className="w-24 h-24 rotate-12" />
+        <div className="flex flex-col md:flex-row gap-8 items-center md:items-start relative z-10">
+          <div className="relative">
+            <div className="w-32 h-32 rounded-2xl overflow-hidden border-4 border-white/10 shadow-2xl bg-slate-800 flex items-center justify-center">
+              {user.photoURL ? (
+                <img src={user.photoURL} alt={user.displayName || ""} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              ) : (
+                <UserIcon className="w-16 h-16 text-slate-600" />
+              )}
+            </div>
+            <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center border-2 border-slate-950">
+              <Award className="w-4 h-4 text-white" />
+            </div>
+          </div>
+
+          <div className="flex-1 text-center md:text-left space-y-4">
+            <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
+              <div>
+                {isEditing ? (
+                  <input 
+                    className="text-4xl font-bold mb-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-600/50"
+                    value={editData.display_name}
+                    onChange={(e) => setEditData({ ...editData, display_name: e.target.value })}
+                  />
+                ) : (
+                  <h1 className="text-4xl font-bold mb-1">{profile?.display_name || user.displayName}</h1>
+                )}
+                <p className="text-brand-400 font-medium">Student</p>
+              </div>
+              
+              <div className="flex gap-2">
+                {isEditing ? (
+                  <>
+                    <button 
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition-all disabled:opacity-50"
+                    >
+                      {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      Save
+                    </button>
+                    <button 
+                      onClick={() => setIsEditing(false)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+                    >
+                      <X className="w-4 h-4" />
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600/20 text-brand-400 border border-brand-600/30 hover:bg-brand-600/30 transition-all"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    Edit Profile
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-slate-400">
+              <div className="flex items-center justify-center md:justify-start gap-2">
+                <Mail className="w-4 h-4" />
+                {user.email}
+              </div>
+              <div className="flex items-center justify-center md:justify-start gap-2">
+                <Calendar className="w-4 h-4" />
+                Joined {profile?.joined ? new Date(profile.joined).toLocaleDateString() : "Mar 2026"}
+              </div>
+              <div className="flex items-center justify-center md:justify-start gap-2">
+                <MapPin className="w-4 h-4" />
+                {isEditing ? (
+                  <input 
+                    className="bg-white/5 border border-white/10 rounded px-2 py-0.5 focus:outline-none"
+                    placeholder="Location"
+                    value={editData.location}
+                    onChange={(e) => setEditData({ ...editData, location: e.target.value })}
+                  />
+                ) : (
+                  profile?.location || "Not set"
+                )}
+              </div>
+              <div className="flex items-center justify-center md:justify-start gap-2">
+                <Phone className="w-4 h-4" />
+                {isEditing ? (
+                  <input 
+                    className="bg-white/5 border border-white/10 rounded px-2 py-0.5 focus:outline-none"
+                    placeholder="Phone Number"
+                    value={editData.phone_number}
+                    onChange={(e) => setEditData({ ...editData, phone_number: e.target.value })}
+                  />
+                ) : (
+                  profile?.phone_number || "Not set"
+                )}
+              </div>
+            </div>
+
+            {isEditing ? (
+              <textarea 
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-600/50 transition-all text-sm text-slate-400"
+                placeholder="Write a short bio..."
+                rows={3}
+                value={editData.bio}
+                onChange={(e) => setEditData({ ...editData, bio: e.target.value })}
+              />
+            ) : (
+              profile?.bio && <p className="text-sm text-slate-400 leading-relaxed">{profile.bio}</p>
+            )}
+          </div>
+
+          <div className="flex gap-4">
+            <div className="glass px-6 py-4 rounded-2xl text-center">
+              <p className="text-2xl font-bold">{userReviews.length}</p>
+              <p className="text-xs text-slate-500 uppercase tracking-wider">Reviews</p>
+            </div>
+            <div className="glass px-6 py-4 rounded-2xl text-center">
+              <p className="text-2xl font-bold">{avgRating}</p>
+              <p className="text-xs text-slate-500 uppercase tracking-wider">Avg Rating</p>
+            </div>
+          </div>
         </div>
-        <div className="absolute bottom-[20%] left-[20%] text-white/5 animate-bounce [animation-duration:10s]">
-          <GraduationCap className="w-32 h-32 -rotate-12" />
+      </GlowCard>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Stats Column */}
+        <div className="space-y-6">
+          <GlowCard customSize className="h-auto" glowColor="orange">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <Star className="w-5 h-5 text-amber-400" />
+              Achievements
+            </h3>
+            <div className="space-y-3">
+              {[
+                { name: "First Review", date: "Mar 10, 2026", icon: "🌱" },
+                { name: "Constructive Critic", date: "Mar 12, 2026", icon: "✍️" },
+                { name: "Top Contributor", date: "Mar 15, 2026", icon: "🏆" }
+              ].map((a, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
+                  <span className="text-2xl">{a.icon}</span>
+                  <div>
+                    <p className="text-sm font-bold">{a.name}</p>
+                    <p className="text-[10px] text-slate-500">{a.date}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </GlowCard>
         </div>
-        <div className="absolute top-[40%] right-[15%] text-white/5 animate-pulse [animation-delay:3s]">
-          <School className="w-28 h-28 rotate-6" />
-        </div>
-        <div className="absolute bottom-[10%] right-[25%] text-white/5 animate-bounce [animation-duration:8s]">
-          <Pencil className="w-20 h-20 -rotate-45" />
+
+        {/* Reviews Column */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-bold flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-brand-400" />
+              My Recent Reviews
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6">
+            {userReviews.map((review) => (
+              <ReviewCard key={review.id} review={review} onUpdate={() => {
+                const fetchUserReviews = async () => {
+                  if (!user?.email) return;
+                  try {
+                    const reviews = await api.getUserReviews(user.email);
+                    setUserReviews(reviews);
+                  } catch (error) {
+                    console.error("API Error:", error);
+                  }
+                };
+                fetchUserReviews();
+              }} />
+            ))}
+            {userReviews.length === 0 && !loading && (
+              <GlowCard customSize className="text-center py-12 h-auto" glowColor="blue">
+                <p className="text-slate-500">You haven't submitted any reviews yet.</p>
+              </GlowCard>
+            )}
+          </div>
         </div>
       </div>
-
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card p-8 md:p-12 max-w-md w-full relative z-10 text-center"
-      >
-        <div className="w-16 h-16 bg-brand-600 rounded-2xl flex items-center justify-center shadow-lg shadow-brand-600/40 mx-auto mb-6">
-          <span className="text-3xl font-bold text-white">F</span>
-        </div>
-        
-        <h1 className="text-3xl font-bold mb-2">Welcome to FlipSense</h1>
-        <p className="text-slate-400 mb-8">Sign in to share your flipped classroom feedback and view analytics.</p>
-
-        {error && (
-          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm mb-6">
-            {error}
-          </div>
-        )}
-
-        {mfaResolver ? (
-          <div className="space-y-6">
-            <div className="flex items-center justify-center gap-2 text-brand-400">
-              <ShieldCheck className="w-6 h-6" />
-              <span className="font-bold text-lg">Verification Required</span>
-            </div>
-            
-            {!mfaSent ? (
-              <div className="space-y-4">
-                <p className="text-sm text-slate-400">
-                  Select a verification method:
-                </p>
-                {mfaResolver.hints.map((hint, index) => (
-                  <button
-                    key={index}
-                    onClick={() => sendMfaCode(index)}
-                    disabled={loading}
-                    className="w-full flex items-center justify-between p-4 bg-slate-900 border border-slate-800 rounded-xl hover:border-brand-500 transition-all group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-brand-600/10 rounded-lg flex items-center justify-center text-brand-400 group-hover:bg-brand-600 group-hover:text-white transition-colors">
-                        <ShieldCheck className="w-5 h-5" />
-                      </div>
-                      <div className="text-left">
-                        <div className="font-medium text-white">
-                          {hint.factorId === PhoneMultiFactorGenerator.FACTOR_ID ? "Phone Number" : "Other Method"}
-                        </div>
-                        <div className="text-xs text-slate-500">
-                          {hint.factorId === PhoneMultiFactorGenerator.FACTOR_ID ? 
-                            `Ending in ${(hint as any).phoneNumber?.slice(-4)}` : 
-                            hint.displayName || "Unknown"}
-                        </div>
-                      </div>
-                    </div>
-                    <Send className="w-4 h-4 text-slate-600 group-hover:text-brand-400 transition-colors" />
-                  </button>
-                ))}
-                <div id="recaptcha-container"></div>
-              </div>
-            ) : (
-              <form onSubmit={handleMfaVerify} className="space-y-4">
-                <p className="text-sm text-slate-400">
-                  Enter the 6-digit code sent to your phone.
-                </p>
-                <input
-                  type="text"
-                  value={mfaCode}
-                  onChange={(e) => setMfaCode(e.target.value)}
-                  placeholder="000000"
-                  maxLength={6}
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl py-4 px-4 text-center text-2xl tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  required
-                />
-                <button
-                  type="submit"
-                  disabled={loading || mfaCode.length < 6}
-                  className="w-full bg-brand-600 text-white font-bold py-4 rounded-xl hover:bg-brand-500 transition-all disabled:opacity-50"
-                >
-                  {loading ? (
-                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    "Verify & Sign In"
-                  )}
-                </button>
-              </form>
-            )}
-
-            <button
-              onClick={resetMfa}
-              className="flex items-center justify-center gap-2 text-sm text-slate-500 hover:text-white transition-colors mx-auto"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Login
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-3 bg-white text-slate-950 font-bold py-4 rounded-xl hover:bg-slate-100 transition-all disabled:opacity-50"
-          >
-            {loading ? (
-              <div className="w-6 h-6 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-6 h-6" />
-                Continue with Google
-              </>
-            )}
-          </button>
-        )}
-
-        <p className="mt-8 text-xs text-slate-500">
-          By continuing, you agree to our Terms of Service and Privacy Policy.
-        </p>
-      </motion.div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { motion } from "motion/react";
+import { GlowCard } from "./ui/spotlight-card";
 
 interface StatCardProps {
   title: string;
@@ -13,9 +14,10 @@ interface StatCardProps {
 
 export default function StatCard({ title, value, icon: Icon, trend, trendUp, color }: StatCardProps) {
   return (
-    <motion.div 
-      whileHover={{ y: -5 }}
-      className="glass-card group"
+    <GlowCard 
+      customSize 
+      className="group h-auto"
+      glowColor={color.includes('emerald') ? 'green' : color.includes('rose') ? 'red' : color.includes('amber') ? 'orange' : color.includes('indigo') ? 'blue' : 'purple'}
     >
       <div className="flex justify-between items-start mb-4">
         <div className={cn("p-3 rounded-xl transition-transform group-hover:scale-110", color)}>
@@ -32,6 +34,6 @@ export default function StatCard({ title, value, icon: Icon, trend, trendUp, col
       </div>
       <p className="text-slate-400 text-sm font-medium mb-1">{title}</p>
       <h3 className="text-3xl font-bold tracking-tight">{value}</h3>
-    </motion.div>
+    </GlowCard>
   );
 }
