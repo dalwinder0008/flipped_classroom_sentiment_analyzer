@@ -3,16 +3,35 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import net from "net";
 
 dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Function to find an available port
+function findAvailablePort(startPort: number): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.listen(startPort, () => {
+      const port = (server.address() as net.AddressInfo).port;
+      server.close(() => resolve(port));
+    });
+    server.on('error', () => {
+      // Port is busy, try next one
+      resolve(findAvailablePort(startPort + 1));
+    });
+  });
+}
+
 async function startServer() {
   console.log("[Server] Starting server initialization...");
-  
+
   const app = express();
-  const PORT = 3000;
+
+  // Find an available port starting from 3000
+  const PORT = await findAvailablePort(3000);
+  console.log(`[Server] Using port: ${PORT}`);
 
   app.use(express.json());
 
